@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Progress Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">ProgressOS</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="nav-link active" data-section="dashboard" onclick="showSection('dashboard',this)">
+        <span class="nav-icon">🏠</span><span>Dashboard</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-section="targets" onclick="showSection('targets',this)">
+        <span class="nav-icon">🎯</span><span>Targets</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-section="resources" onclick="showSection('resources',this)">
+        <span class="nav-icon">📚</span><span>Resources</span>
+      </a></li>
+      <li><a href="#" class="nav-link" data-section="analytics" onclick="showSection('analytics',this)">
+        <span class="nav-icon">📊</span><span>Analytics</span>
+      </a></li>
+    </ul>
+    <div class="sidebar-bottom">
+      <button class="sidebar-btn" onclick="exportData()">💾 Export Data</button>
+      <button class="sidebar-btn danger" onclick="if(confirm('Reset all data?'))fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'',location:''})}).then(()=>location.href='/')">⚙️ Reset</button>
+    </div>
+  </nav>
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-bar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <span class="mobile-logo">⚡ ProgressOS</span>
+    <button class="hamburger" onclick="showModal('addTargetModal')">+</button>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ── DASHBOARD SECTION ── -->
+    <section id="sec-dashboard" class="section active">
+      <div class="header-row">
+        <div>
+          <h2 class="greeting" id="greeting">Loading…</h2>
+          <p class="subheading" id="date-line"></p>
+        </div>
+        <div class="weather-pill" id="weather-pill">
+          <span id="w-icon">🌤️</span>
+          <span id="w-temp">--</span>
+          <span id="w-desc">Loading</span>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-val" id="stat-targets">0</div>
+          <div class="stat-label">Total Targets</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-val" id="stat-active">0</div>
+          <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏱️</div>
+          <div class="stat-val" id="stat-hours">0</div>
+          <div class="stat-label">Hours Logged</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <div class="stat-val" id="stat-resources">0</div>
+          <div class="stat-label">Resources</div>
+        </div>
+      </div>
+
+      <h3 class="section-title">Active Targets</h3>
+      <div id="dashboard-targets" class="target-list"></div>
+    </section>
+
+    <!-- ── TARGETS SECTION ── -->
+    <section id="sec-targets" class="section">
+      <div class="header-row">
+        <h2 class="page-title">My Targets</h2>
+        <button class="btn-primary" onclick="showModal('addTargetModal')">+ Add Target</button>
+      </div>
+      <div id="targets-list" class="target-list"></div>
+    </section>
+
+    <!-- ── RESOURCES SECTION ── -->
+    <section id="sec-resources" class="section">
+      <div class="header-row">
+        <h2 class="page-title">Resources & Links</h2>
+        <button class="btn-primary" onclick="showModal('addResourceModal')">+ Add Resource</button>
+      </div>
+      <div id="resources-list" class="resource-grid"></div>
+    </section>
+
+    <!-- ── ANALYTICS SECTION ── -->
+    <section id="sec-analytics" class="section">
+      <h2 class="page-title">Analytics</h2>
+      <div class="analytics-controls">
+        <label>Select Target: </label>
+        <select id="chart-target-select" onchange="loadChart()" class="select-input">
+          <option value="">-- choose a target --</option>
+        </select>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="progressChart"></canvas>
+      </div>
+      <div class="chart-wrap" style="margin-top:24px">
+        <canvas id="hoursChart"></canvas>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- OVERLAY -->
+  <div class="overlay" id="overlay" onclick="closeAllModals()"></div>
+
+  <!-- MODAL: Add Target -->
+  <div class="modal" id="addTargetModal">
+    <div class="modal-header">
+      <h3>🎯 New Target</h3>
+      <button class="close-btn" onclick="closeAllModals()">✕</button>
+    </div>
+    <div class="field">
+      <label>Title *</label>
+      <input id="t-title" type="text" placeholder="e.g. Complete DSA Course"/>
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea id="t-desc" placeholder="What do you want to achieve?"></textarea>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Category</label>
+        <select id="t-cat" class="select-input">
+          <option>Programming</option><option>DSA</option><option>Web Dev</option>
+          <option>Machine Learning</option><option>Cloud</option><option>Design</option>
+          <option>General</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Goal Hours</label>
+        <input id="t-hours" type="number" placeholder="e.g. 50" min="1"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Deadline</label>
+      <input id="t-deadline" type="date"/>
+    </div>
+    <button class="btn-primary full" onclick="addTarget()">Create Target</button>
+  </div>
+
+  <!-- MODAL: Log Progress -->
+  <div class="modal" id="logModal">
+    <div class="modal-header">
+      <h3>⏱️ Log Progress</h3>
+      <button class="close-btn" onclick="closeAllModals()">✕</button>
+    </div>
+    <input type="hidden" id="log-target-id"/>
+    <div class="field">
+      <label>Hours Spent Today</label>
+      <input id="log-hours" type="number" placeholder="e.g. 2" min="0.1" step="0.1"/>
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="log-note" placeholder="What did you work on?"></textarea>
+    </div>
+    <button class="btn-primary full" onclick="logProgress()">Save Progress</button>
+  </div>
+
+  <!-- MODAL: Add Resource -->
+  <div class="modal" id="addResourceModal">
+    <div class="modal-header">
+      <h3>📚 Add Resource</h3>
+      <button class="close-btn" onclick="closeAllModals()">✕</button>
+    </div>
+    <div class="field">
+      <label>URL (YouTube or any link) *</label>
+      <input id="r-url" type="url" placeholder="https://youtube.com/watch?v=..."/>
+    </div>
+    <div class="field">
+      <label>Custom Title (optional)</label>
+      <input id="r-title" type="text" placeholder="Leave blank to auto-detect"/>
+    </div>
+    <div class="field">
+      <label>Link to Target</label>
+      <select id="r-target" class="select-input">
+        <option value="">None</option>
+      </select>
+    </div>
+    <button class="btn-primary full" onclick="addResource()">Save Resource</button>
+  </div>
+
+  <!-- MODAL: Target Detail -->
+  <div class="modal modal-wide" id="detailModal">
+    <div class="modal-header">
+      <h3 id="detail-title">Target Detail</h3>
+      <button class="close-btn" onclick="closeAllModals()">✕</button>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
