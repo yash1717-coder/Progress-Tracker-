@@ -246,3 +246,4 @@ input::placeholder,textarea::placeholder{color:var(--muted);}
   .stat-grid{grid-template-columns:repeat(2,1fr);}
   .resource-grid{grid-template-columns:1fr;}
 }
+
