@@ -1,0 +1,4 @@
+git add Procfile requirements.txt
+git commit -m "fix: add gunicorn for deployment"
+git push
+web: gunicorn app:app
